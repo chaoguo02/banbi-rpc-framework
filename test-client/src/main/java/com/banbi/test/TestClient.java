@@ -11,7 +11,7 @@ public class TestClient {
         // 创建代理对象
         HelloService helloService = proxy.getProxy(HelloService.class);
         // 接口方法的参数对象
-        HelloObject object = new HelloObject(1, "this is test message");
+        HelloObject object = new HelloObject(2, "this is test message");
         // 由动态代理可知，代理对象调用hello()，实际会执行invoke()
         String res = helloService.hello(object);
         System.out.println(res);
