@@ -2,6 +2,7 @@ package com.banbi.rpc.serializer;
 
 import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.entity.RpcResponse;
+import com.banbi.rpc.exception.SerializeException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -20,8 +21,7 @@ public class JsonSerializer implements CommonSerializer{
             return objectMapper.writeValueAsBytes(obj);
         } catch (JsonProcessingException e) {
             logger.error("序列化时有错误发送：{}", e.getMessage());
-            e.printStackTrace();
-            return null;
+            throw new SerializeException("序列化时有错误发生");
         }
     }
 
@@ -35,8 +35,7 @@ public class JsonSerializer implements CommonSerializer{
             return obj;
         }catch (IOException e){
             logger.error("反序列化时有错误发生", e.getMessage());
-            e.printStackTrace();
-            return null;
+            throw new SerializeException("反序列化时有错误发生");
         }
     }
 
