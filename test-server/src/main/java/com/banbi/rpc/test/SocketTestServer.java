@@ -4,6 +4,7 @@ import com.banbi.rpc.api.ByeService;
 import com.banbi.rpc.api.HelloService;
 import com.banbi.rpc.registry.DefaultServiceRegistry;
 import com.banbi.rpc.registry.ServiceRegistry;
+import com.banbi.rpc.serializer.KryoSerializer;
 import com.banbi.rpc.transport.socket.client.SocketClient;
 import com.banbi.rpc.transport.socket.server.SocketServer;
 
@@ -18,6 +19,7 @@ public class SocketTestServer {
         serviceRegistry.register(byeService);
 
         SocketServer socketServer = new SocketServer(serviceRegistry);
+        socketServer.setSerializer(new KryoSerializer());
         socketServer.start(9000);
     }
 }

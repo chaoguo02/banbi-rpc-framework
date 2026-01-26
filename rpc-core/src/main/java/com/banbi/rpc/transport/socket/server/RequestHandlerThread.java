@@ -4,13 +4,14 @@ import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.entity.RpcResponse;
 import com.banbi.rpc.registry.ServiceRegistry;
 import com.banbi.rpc.handler.RequestHandler;
+import com.banbi.rpc.serializer.CommonSerializer;
+import com.banbi.rpc.transport.socket.util.ObjectReader;
+import com.banbi.rpc.transport.socket.util.ObjectWriter;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 
 /**
@@ -26,22 +27,24 @@ public class RequestHandlerThread implements Runnable{
 
     private ServiceRegistry serviceRegistry;
 
+    private CommonSerializer serializer;
+
     // 服务器异步调用
     @Override
     public void run() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())){
+        try (InputStream is = socket.getInputStream();
+             OutputStream os = socket.getOutputStream();){
             // 从客户端读取Rpc请求对象rpcRequest
-            RpcRequest rpcRequest = (RpcRequest) ois.readObject();
+            RpcRequest rpcRequest = (RpcRequest) ObjectReader.readObject(is);
             String interfaceName = rpcRequest.getInterfaceName();
             // 根据接口名从注册中心找到服务实现对象
             Object service = serviceRegistry.getService(interfaceName);
             // 调用invoke执行目标方法
             Object result = requestHandler.handle(rpcRequest, service);
             // 将结果包装为RpcResponse，并写给客户端
-            oos.writeObject(RpcResponse.success(result));
-            oos.flush();
-        }catch (IOException | ClassNotFoundException e){
+            RpcResponse<Object> response = RpcResponse.success(result);
+            ObjectWriter.writeObject(os, response, serializer);
+        }catch (IOException e){
             logger.info("调用或发送时发生错误： " + e);
         }
     }

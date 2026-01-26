@@ -1,8 +1,11 @@
 package com.banbi.rpc.transport.socket.server;
 
 
+import com.banbi.rpc.enumeration.RpcError;
+import com.banbi.rpc.exception.RpcException;
 import com.banbi.rpc.registry.ServiceRegistry;
 import com.banbi.rpc.handler.RequestHandler;
+import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.RpcServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +29,8 @@ public class SocketServer implements RpcServer {
 
     private final ServiceRegistry serviceRegistry;
 
+    private CommonSerializer serializer;
+
     private RequestHandler requestHandler = new RequestHandler();
 
     public SocketServer(ServiceRegistry serviceRegistry){
@@ -40,6 +45,11 @@ public class SocketServer implements RpcServer {
      * @param port
      */
     public void start(int port){
+        if(serializer == null){
+            logger.error("未设置序列化器");
+            throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
+        }
+
         // 创建serversocket并监听端口
         try(ServerSocket serverSocket = new ServerSocket(port)){
             logger.info("服务器启动...");
@@ -48,12 +58,16 @@ public class SocketServer implements RpcServer {
             while((socket = serverSocket.accept()) != null){
                 logger.info("客户端连接！ {}:{}", socket.getInetAddress(), socket.getPort());
                 // 把连接交给线程池异常处理
-                threadPool.execute(new RequestHandlerThread(socket, requestHandler, serviceRegistry));
+                threadPool.execute(new RequestHandlerThread(socket, requestHandler, serviceRegistry, serializer));
             }
             threadPool.shutdown();
         }catch(IOException e){
-            logger.error("连接时有错误发生：", e);
+            logger.error("服务器启动时有错误发生：", e);
         }
     }
 
+    @Override
+    public void setSerializer(CommonSerializer serializer) {
+        this.serializer = serializer;
+    }
 }

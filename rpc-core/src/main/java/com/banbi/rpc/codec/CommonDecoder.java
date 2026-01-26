@@ -37,10 +37,12 @@ public class CommonDecoder extends ReplayingDecoder {
         }
         int serializerCode = in.readInt();
         CommonSerializer serializer = CommonSerializer.getByCode(serializerCode);
+
         if(serializer == null){
             logger.error("不识别的反序列化器：{}", serializerCode);
             throw new RpcException(RpcError.UNKNOWN_SERIALIZER);
         }
+        logger.info("decode的serializer：{}", serializer.getCode());
         int length = in.readInt();
         byte[] bytes = new byte[length];
         in.readBytes(bytes);

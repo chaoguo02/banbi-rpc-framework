@@ -2,6 +2,9 @@ package com.banbi.rpc.transport.netty.server;
 
 import com.banbi.rpc.codec.CommonDecoder;
 import com.banbi.rpc.codec.CommonEncoder;
+import com.banbi.rpc.enumeration.RpcError;
+import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.serializer.HessianSerializer;
 import com.banbi.rpc.serializer.KryoSerializer;
 import com.banbi.rpc.transport.RpcServer;
@@ -21,6 +24,8 @@ public class NettyServer implements RpcServer {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
 
+    private CommonSerializer serializer;
+
     /**
      * Netty服务端启动器：负责启动一个Netty服务器监听指定端口、接收客户端连接
      * 并通过pipeline的编解码器把网络字节流转成RpcRequest/RpcResponse，最走过交给handler执行业务
@@ -29,6 +34,11 @@ public class NettyServer implements RpcServer {
      */
     @Override
     public void start(int port) {
+        if(serializer == null){
+            logger.error("未设置序列化器");
+            throw new RpcException(RpcError.SERVICE_NOT_FOUND);
+        }
+
         /*
             两个线程组：bossGroup和workerGroup
             bossGroup：专门负责accept新连接
@@ -61,9 +71,7 @@ public class NettyServer implements RpcServer {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
-                            pipeline.addLast(new CommonEncoder(new HessianSerializer()))
-//                                    .addLast(new CommonEncoder(new KryoSerializer()))
-//                                    .addLast(new CommonEncoder(new JsonSerializer()))
+                            pipeline.addLast(new CommonEncoder(serializer))
                                     .addLast(new CommonDecoder())
                                     .addLast(new NettyServerHandler());
                         }
@@ -79,5 +87,10 @@ public class NettyServer implements RpcServer {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
+    }
+
+    @Override
+    public void setSerializer(CommonSerializer serializer) {
+        this.serializer = serializer;
     }
 }
