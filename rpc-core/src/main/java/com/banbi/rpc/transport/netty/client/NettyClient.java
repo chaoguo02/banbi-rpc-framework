@@ -22,6 +22,9 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicReference;
+
 @AllArgsConstructor
 public class NettyClient implements RpcClient {
 
@@ -29,8 +32,6 @@ public class NettyClient implements RpcClient {
 
     private String host;
     private int port;
-    private static final Bootstrap bootstrap;
-
     private CommonSerializer serializer;
 
     public NettyClient(String host, int port){
@@ -50,47 +51,21 @@ public class NettyClient implements RpcClient {
      *   handler：接收RpcResponse的业务handler
       */
 
-    static {
-        EventLoopGroup group = new NioEventLoopGroup();
-        bootstrap = new Bootstrap();
-        bootstrap.group(group)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_KEEPALIVE, true);
-    }
-
     @Override
     public Object sendRequest(RpcRequest rpcRequest) {
+        if(serializer == null){
+            logger.error("未设置序列化器");
+            throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
+        }
+        // 保证自定义实体类变量的原子性和共享性的线程安全，此处应用于rpcResponse
+        AtomicReference<Object> result = new AtomicReference<>(null);
         try {
-            if(serializer == null){
-                logger.error("未设置序列化器");
-                throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
-            }
-            bootstrap.handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                protected void initChannel(SocketChannel ch) throws Exception {
-                    ChannelPipeline pipeline = ch.pipeline();
-                    pipeline.addLast(new CommonDecoder())
-                            .addLast(new CommonEncoder(serializer))
-                            .addLast(new NettyClientHandler());
-
-                }
-            });
-
-            // 连接客户端
-            ChannelFuture future = bootstrap.connect(host, port).sync();
-            logger.info("客户端连接到服务端{}：{}", host, port);
-            /*
-            发送请求：
-                把rpcRequest写入channel
-                因为pipeline有CommonEncoder，所以会自动把RpcRequest编码成字节流发出去
-                listener只是打印”发送成功/失败“的日志
-             */
-            Channel channel = future.channel();
-            if(channel != null){
+            Channel channel = ChannelProvider.get(new InetSocketAddress(host, port), serializer);
+            if(channel.isActive()) {
                 channel.writeAndFlush(rpcRequest).addListener(future1 -> {
-                    if(future1.isSuccess()){
+                    if (future1.isSuccess()) {
                         logger.info(String.format("客户端发送消息：%s", rpcRequest.toString()));
-                    }else{
+                    } else {
                         logger.error("发送消息时有错误发生：", future1.cause());
                     }
                 });
@@ -101,12 +76,14 @@ public class NettyClient implements RpcClient {
                 // 返回结果
                 RpcResponse rpcResponse = channel.attr(key).get();
                 RpcManagerChecker.check(rpcRequest, rpcResponse);
-                return rpcResponse.getData();
+                result.set(rpcResponse.getData());
+            }else {
+                System.exit(0);
             }
         }catch (InterruptedException e){
             logger.error("发送消息时由错误发生：", e);
         }
-        return null;
+        return result.get();
     }
 
     @Override
