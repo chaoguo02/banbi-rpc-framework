@@ -11,6 +11,7 @@ import com.banbi.rpc.serializer.HessianSerializer;
 import com.banbi.rpc.serializer.JsonSerializer;
 import com.banbi.rpc.serializer.KryoSerializer;
 import com.banbi.rpc.transport.RpcClient;
+import com.banbi.rpc.util.RpcManagerChecker;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -96,9 +97,10 @@ public class NettyClient implements RpcClient {
                 // 等待连接关闭：阻塞等待channel被关闭，代码假设服务端处理完会关闭连接
                 channel.closeFuture().sync();
                 // handler收到响应后，把RpcResponse放进channel的属性attr中
-                AttributeKey<RpcResponse> key = AttributeKey.valueOf("rpcResponse");
+                AttributeKey<RpcResponse> key = AttributeKey.valueOf("rpcResponse" + rpcRequest.getRequestId());
                 // 返回结果
                 RpcResponse rpcResponse = channel.attr(key).get();
+                RpcManagerChecker.check(rpcRequest, rpcResponse);
                 return rpcResponse.getData();
             }
         }catch (InterruptedException e){

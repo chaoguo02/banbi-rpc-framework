@@ -9,6 +9,7 @@ import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.RpcClient;
 import com.banbi.rpc.transport.socket.util.ObjectReader;
 import com.banbi.rpc.transport.socket.util.ObjectWriter;
+import com.banbi.rpc.util.RpcManagerChecker;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,14 +51,7 @@ public class SocketClient implements RpcClient {
             Object obj = ObjectReader.readObject(is);
             // 阻塞等待并读取客户端响应
             RpcResponse rpcResponse = (RpcResponse) obj;
-            if(rpcResponse == null){
-                logger.error("服务调用失败,service:{}" + rpcRequest.getInterfaceName());
-                throw new RpcException(RpcError.SERVICE_INVOCATION_FAILURE, "service:" + rpcRequest.getInterfaceName());
-            }
-            if(rpcResponse.getStatusCode() == null || rpcResponse.getStatusCode() != ResponseCode.SUCCESS.getCode()){
-                logger.error("服务调用失败, service:{} response:{}", rpcRequest.getInterfaceName(), rpcResponse);
-                throw new RpcException(RpcError.SERVICE_INVOCATION_FAILURE, "service:" + rpcRequest.getInterfaceName());
-            }
+            RpcManagerChecker.check(rpcRequest, rpcResponse);
             // 返回真正的业务数据
             return rpcResponse.getData();
         }catch (IOException e){

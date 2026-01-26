@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.UUID;
 
 /**
  * 通过代理对象，返回RpcRequest需要的所有信息
@@ -36,7 +37,7 @@ public class RpcClientProxy implements InvocationHandler{
     public Object invoke(Object proxy, Method method, Object[] args) {
         logger.info("调用方法：{}#{}", method.getDeclaringClass().getName(), method.getName());
 
-        RpcRequest rpcRequest = new RpcRequest(method.getDeclaringClass().getName(),
+        RpcRequest rpcRequest = new RpcRequest(UUID.randomUUID().toString() ,method.getDeclaringClass().getName(),
                 method.getName(), args, method.getParameterTypes());
         return client.sendRequest(rpcRequest);
     }

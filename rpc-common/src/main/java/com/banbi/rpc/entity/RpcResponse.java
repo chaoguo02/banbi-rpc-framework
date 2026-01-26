@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class RpcResponse<T> implements Serializable {
+    private String requestId;
     // 响应状态码
     private Integer statusCode;
     // 响应状态码对应的信息
@@ -19,8 +20,9 @@ public class RpcResponse<T> implements Serializable {
         响应成功时服务端返回的对象
      */
 
-    public static <T> RpcResponse<T> success(T data){
+    public static <T> RpcResponse<T> success(T data, String requestId){
         RpcResponse<T> response = new RpcResponse<>();
+        response.setRequestId(requestId);
         response.setStatusCode(ResponseCode.SUCCESS.getCode());
         response.setData(data);
         return response;
@@ -29,8 +31,9 @@ public class RpcResponse<T> implements Serializable {
     /*
         响应失败时服务端返回的对象
      */
-    public static <T> RpcResponse<T> fail(ResponseCode code){
+    public static <T> RpcResponse<T> fail(ResponseCode code, String requestId){
         RpcResponse<T> response = new RpcResponse<>();
+        response.setRequestId(requestId);
         response.setStatusCode(code.getCode());
         response.setMesssage(code.getMessage());
         return response;

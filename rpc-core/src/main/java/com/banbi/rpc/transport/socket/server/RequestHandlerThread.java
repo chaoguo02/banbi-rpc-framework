@@ -40,9 +40,8 @@ public class RequestHandlerThread implements Runnable{
             // 根据接口名从注册中心找到服务实现对象
             Object service = serviceRegistry.getService(interfaceName);
             // 调用invoke执行目标方法
-            Object result = requestHandler.handle(rpcRequest, service);
+            Object response = requestHandler.handle(rpcRequest, service);
             // 将结果包装为RpcResponse，并写给客户端
-            RpcResponse<Object> response = RpcResponse.success(result);
             ObjectWriter.writeObject(os, response, serializer);
         }catch (IOException e){
             logger.info("调用或发送时发生错误： " + e);

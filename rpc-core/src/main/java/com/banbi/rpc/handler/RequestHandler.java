@@ -30,7 +30,7 @@ public class RequestHandler{
         catch (IllegalAccessException | InvocationTargetException e){
             logger.info("调用或发送时由错误发送" + e);
         }
-        return result;
+        return RpcResponse.success(result, rpcRequest.getRequestId());
     }
 
     /**
@@ -44,7 +44,7 @@ public class RequestHandler{
         try {
             method = service.getClass().getMethod(rpcRequest.getMethodName(), rpcRequest.getParamTypes());
         }catch(NoSuchMethodException e){
-            return RpcResponse.fail(ResponseCode.METHOD_NOT_FOUND);
+            return RpcResponse.fail(ResponseCode.METHOD_NOT_FOUND, rpcRequest.getRequestId());
         }
         return method.invoke(service, rpcRequest.getParameters());
     }
