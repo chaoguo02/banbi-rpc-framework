@@ -8,6 +8,7 @@ import java.io.Serializable;
 
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Data
 public class HelloObject implements Serializable {
     private Integer id;

@@ -3,6 +3,8 @@ package com.banbi.rpc.transport;
 import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.entity.RpcResponse;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -14,9 +16,10 @@ import java.lang.reflect.Proxy;
 
 @AllArgsConstructor
 public class RpcClientProxy implements InvocationHandler{
-    private String host;
 
-    private int port;
+    private static final Logger logger = LoggerFactory.getLogger(RpcClientProxy.class);
+
+    private final RpcClient client;
 
     // 抑制编译器产生警告信息
     @SuppressWarnings("unchecked")
@@ -25,18 +28,13 @@ public class RpcClientProxy implements InvocationHandler{
         return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class<?>[]{clazz}, this);
     }
 
-    @SuppressWarnings("unchecked")
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        // 客户端向服务端传输的对象，Builder模式生成
-        RpcRequest rpcRequest = RpcRequest.builder()
-                .interfaceName(method.getDeclaringClass().getName())
-                .methodName(method.getName())
-                .parameters(args)
-                .paramTypes(method.getParameterTypes())
-                .build();
-        // 进行远程调用的客户端
-        RpcClient rpcClient = new RpcClient();
-        return ((RpcResponse) rpcClient.sendRequest(rpcRequest, host, port)).getData();
+        logger.info("调用方法：{}#{}", method.getDeclaringClass().getName(), method.getName());
+
+        RpcRequest rpcRequest = new RpcRequest(method.getDeclaringClass().getName(),
+                method.getName(), args, method.getParameterTypes());
+        return client.sendRequest(rpcRequest);
     }
 }
