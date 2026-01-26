@@ -28,9 +28,12 @@ public class RpcClientProxy implements InvocationHandler{
         return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class<?>[]{clazz}, this);
     }
 
-
+    /**
+     *  调用hello方法，实际上就会进入invoke函数
+     *  在invoke函数中构造RpcRequest请求，并sendRequest发送请求oos.writeObject()
+     */
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
         logger.info("调用方法：{}#{}", method.getDeclaringClass().getName(), method.getName());
 
         RpcRequest rpcRequest = new RpcRequest(method.getDeclaringClass().getName(),
