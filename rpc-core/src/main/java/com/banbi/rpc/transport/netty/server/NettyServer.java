@@ -2,6 +2,7 @@ package com.banbi.rpc.transport.netty.server;
 
 import com.banbi.rpc.codec.CommonDecoder;
 import com.banbi.rpc.codec.CommonEncoder;
+import com.banbi.rpc.serializer.KryoSerializer;
 import com.banbi.rpc.transport.RpcServer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -59,7 +60,8 @@ public class NettyServer implements RpcServer {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
-                            pipeline.addLast(new CommonEncoder(new JsonSerializer()))
+                            pipeline.addLast(new CommonEncoder(new KryoSerializer()))
+//                                    .addLast(new CommonEncoder(new JsonSerializer()))
                                     .addLast(new CommonDecoder())
                                     .addLast(new NettyServerHandler());
                         }
