@@ -1,7 +1,6 @@
 package com.banbi.rpc.transport.socket.server;
 
 import com.banbi.rpc.entity.RpcRequest;
-import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.handler.RequestHandler;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.socket.util.ObjectReader;
@@ -17,8 +16,8 @@ import java.net.Socket;
  * 服务端用一个线程（或线程池中的一个任务）来处理“某个客户端 socket 连接上的一次 RPC 调用请求”，并把调用结果写回给客户端
  */
 @AllArgsConstructor
-public class RequestHandlerThread implements Runnable{
-    private static final Logger logger = LoggerFactory.getLogger(RequestHandlerThread.class);
+public class SocketRequestHandlerThread implements Runnable{
+    private static final Logger logger = LoggerFactory.getLogger(SocketRequestHandlerThread.class);
 
     private Socket socket;
 

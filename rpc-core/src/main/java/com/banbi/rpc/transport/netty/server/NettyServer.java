@@ -4,6 +4,7 @@ import com.banbi.rpc.codec.CommonDecoder;
 import com.banbi.rpc.codec.CommonEncoder;
 import com.banbi.rpc.enumeration.RpcError;
 import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.hook.ShutdownHook;
 import com.banbi.rpc.provider.ServiceProvider;
 import com.banbi.rpc.provider.ServiceProviderImpl;
 import com.banbi.rpc.register.NacosServiceRegistry;
@@ -109,6 +110,7 @@ public class NettyServer implements RpcServer {
                     });
             // 绑定端口并阻塞等待绑定成功
             ChannelFuture future = serverBootstrap.bind(host, port).sync();
+            ShutdownHook.getShutdownHook().addClearAllHook();
 //            阻塞等待服务端channel关闭
             future.channel().closeFuture().sync();
         }catch (InterruptedException e){

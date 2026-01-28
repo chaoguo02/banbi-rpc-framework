@@ -2,7 +2,7 @@ package com.banbi.rpc.transport.netty.server;
 
 import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.handler.RequestHandler;
-import com.banbi.rpc.util.ThreadPoolFactory;
+import com.banbi.rpc.factory.ThreadPoolFactory;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -19,13 +19,14 @@ import java.util.concurrent.ExecutorService;
  */
 public class NettyServerHandler extends SimpleChannelInboundHandler<RpcRequest> {
     private Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
-    private static RequestHandler requestHandler;
 
+    private final ExecutorService threadPool;
+
+    private final RequestHandler requestHandler;
     private static final String THREAD_NAME_PREFIX = "netty-server-handler";
 
-    private static final ExecutorService threadPool;
 
-    static{
+    public NettyServerHandler(){
         requestHandler = new RequestHandler();
         threadPool = ThreadPoolFactory.createDefaultThreadPool(THREAD_NAME_PREFIX);
     }

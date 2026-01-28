@@ -1,4 +1,4 @@
-package com.banbi.rpc.util;
+package com.banbi.rpc.factory;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 

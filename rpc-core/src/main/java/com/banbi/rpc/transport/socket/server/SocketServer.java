@@ -3,6 +3,7 @@ package com.banbi.rpc.transport.socket.server;
 
 import com.banbi.rpc.enumeration.RpcError;
 import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.hook.ShutdownHook;
 import com.banbi.rpc.provider.ServiceProvider;
 import com.banbi.rpc.provider.ServiceProviderImpl;
 import com.banbi.rpc.register.NacosServiceRegistry;
@@ -10,7 +11,7 @@ import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.handler.RequestHandler;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.RpcServer;
-import com.banbi.rpc.util.ThreadPoolFactory;
+import com.banbi.rpc.factory.ThreadPoolFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,14 +66,16 @@ public class SocketServer implements RpcServer {
      */
     public void start(){
         // 创建serversocket并监听端口
-        try(ServerSocket serverSocket = new ServerSocket(port)){
+        try(ServerSocket serverSocket = new ServerSocket()){
+            serverSocket.bind(new InetSocketAddress(host, port));
             logger.info("服务器启动...");
+            ShutdownHook.getShutdownHook().addClearAllHook();
             Socket socket;
             // 循环阻塞等待客户端连接
             while((socket = serverSocket.accept()) != null){
                 logger.info("客户端连接！ {}:{}", socket.getInetAddress(), socket.getPort());
                 // 把连接交给线程池异常处理
-                threadPool.execute(new RequestHandlerThread(socket, requestHandler, serializer));
+                threadPool.execute(new SocketRequestHandlerThread(socket, requestHandler, serializer));
             }
             threadPool.shutdown();
         }catch(IOException e){
