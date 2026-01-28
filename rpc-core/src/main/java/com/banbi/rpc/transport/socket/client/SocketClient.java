@@ -5,6 +5,10 @@ import com.banbi.rpc.entity.RpcResponse;
 import com.banbi.rpc.enumeration.ResponseCode;
 import com.banbi.rpc.enumeration.RpcError;
 import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.register.NacosServiceDiscovery;
+import com.banbi.rpc.register.NacosServiceRegistry;
+import com.banbi.rpc.register.ServiceDiscovery;
+import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.RpcClient;
 import com.banbi.rpc.transport.socket.util.ObjectReader;
@@ -15,21 +19,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 @AllArgsConstructor
 public class SocketClient implements RpcClient {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
-    private final String host;
-
-    private final int port;
-
     private CommonSerializer serializer;
 
-    public SocketClient(String host, int port){
-        this.host = host;
-        this.port = port;
+    private final ServiceDiscovery serviceDiscovery;
+
+    public SocketClient(){
+        serviceDiscovery = new NacosServiceDiscovery();
     }
 
     /**
@@ -42,9 +44,11 @@ public class SocketClient implements RpcClient {
             logger.error("未设置序列化器");
             throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
         }
+        InetSocketAddress inetSocketAddress = serviceDiscovery.lookupService(rpcRequest.getInterfaceName());
 
         // 建立对服务端的连接（短连接）
-        try (Socket socket = new Socket(host, port)){
+        try (Socket socket = new Socket()){
+            socket.connect(inetSocketAddress);
             OutputStream os = socket.getOutputStream();
             InputStream is = socket.getInputStream();
             ObjectWriter.writeObject(os, rpcRequest, serializer);

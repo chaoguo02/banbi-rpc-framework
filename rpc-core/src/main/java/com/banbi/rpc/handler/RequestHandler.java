@@ -3,6 +3,8 @@ package com.banbi.rpc.handler;
 import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.entity.RpcResponse;
 import com.banbi.rpc.enumeration.ResponseCode;
+import com.banbi.rpc.provider.ServiceProvider;
+import com.banbi.rpc.provider.ServiceProviderImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,14 +16,20 @@ import java.lang.reflect.Method;
 public class RequestHandler{
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
+    private static final ServiceProvider serviceProvider;
+
+    static {
+        serviceProvider = new ServiceProviderImpl();
+    }
+
     /**
      * handle 是“处理 RPC 请求的总入口”，负责调度、日志、异常处理，并把执行结果返回
      * @param rpcRequest：一次Rpc请求
-     * @param service:真正的服务实现对象
      * @return
      */
-    public Object handle(RpcRequest rpcRequest, Object service){
+    public Object handle(RpcRequest rpcRequest){
         Object result = null;
+        Object service = serviceProvider.getServiceProvider(rpcRequest.getInterfaceName());
         try {
             // 执行真正的方法调用
             result = invokeTargetMethod(rpcRequest, service);

@@ -6,6 +6,10 @@ import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.entity.RpcResponse;
 import com.banbi.rpc.enumeration.RpcError;
 import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.register.NacosServiceDiscovery;
+import com.banbi.rpc.register.NacosServiceRegistry;
+import com.banbi.rpc.register.ServiceDiscovery;
+import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.serializer.HessianSerializer;
 import com.banbi.rpc.serializer.JsonSerializer;
@@ -30,13 +34,12 @@ public class NettyClient implements RpcClient {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClient.class);
 
-    private String host;
-    private int port;
+    private final ServiceDiscovery serviceDiscovery;
+
     private CommonSerializer serializer;
 
-    public NettyClient(String host, int port){
-        this.host = host;
-        this.port = port;
+    public NettyClient(){
+        serviceDiscovery = new NacosServiceDiscovery();
     }
 
     /**
@@ -60,7 +63,8 @@ public class NettyClient implements RpcClient {
         // 保证自定义实体类变量的原子性和共享性的线程安全，此处应用于rpcResponse
         AtomicReference<Object> result = new AtomicReference<>(null);
         try {
-            Channel channel = ChannelProvider.get(new InetSocketAddress(host, port), serializer);
+            InetSocketAddress inetSocketAddress = serviceDiscovery.lookupService(rpcRequest.getInterfaceName());
+            Channel channel = ChannelProvider.get(inetSocketAddress, serializer);
             if(channel.isActive()) {
                 channel.writeAndFlush(rpcRequest).addListener(future1 -> {
                     if (future1.isSuccess()) {
@@ -78,6 +82,7 @@ public class NettyClient implements RpcClient {
                 RpcManagerChecker.check(rpcRequest, rpcResponse);
                 result.set(rpcResponse.getData());
             }else {
+                channel.close();
                 System.exit(0);
             }
         }catch (InterruptedException e){

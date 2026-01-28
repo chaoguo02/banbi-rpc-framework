@@ -1,8 +1,7 @@
 package com.banbi.rpc.transport.socket.server;
 
 import com.banbi.rpc.entity.RpcRequest;
-import com.banbi.rpc.entity.RpcResponse;
-import com.banbi.rpc.registry.ServiceRegistry;
+import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.handler.RequestHandler;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.socket.util.ObjectReader;
@@ -25,22 +24,17 @@ public class RequestHandlerThread implements Runnable{
 
     private RequestHandler requestHandler;
 
-    private ServiceRegistry serviceRegistry;
-
     private CommonSerializer serializer;
 
     // 服务器异步调用
     @Override
     public void run() {
         try (InputStream is = socket.getInputStream();
-             OutputStream os = socket.getOutputStream();){
+            OutputStream os = socket.getOutputStream();){
             // 从客户端读取Rpc请求对象rpcRequest
             RpcRequest rpcRequest = (RpcRequest) ObjectReader.readObject(is);
-            String interfaceName = rpcRequest.getInterfaceName();
-            // 根据接口名从注册中心找到服务实现对象
-            Object service = serviceRegistry.getService(interfaceName);
             // 调用invoke执行目标方法
-            Object response = requestHandler.handle(rpcRequest, service);
+            Object response = requestHandler.handle(rpcRequest);
             // 将结果包装为RpcResponse，并写给客户端
             ObjectWriter.writeObject(os, response, serializer);
         }catch (IOException e){

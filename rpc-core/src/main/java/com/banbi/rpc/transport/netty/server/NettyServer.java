@@ -4,6 +4,10 @@ import com.banbi.rpc.codec.CommonDecoder;
 import com.banbi.rpc.codec.CommonEncoder;
 import com.banbi.rpc.enumeration.RpcError;
 import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.provider.ServiceProvider;
+import com.banbi.rpc.provider.ServiceProviderImpl;
+import com.banbi.rpc.register.NacosServiceRegistry;
+import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.serializer.HessianSerializer;
 import com.banbi.rpc.serializer.KryoSerializer;
@@ -19,21 +23,48 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.banbi.rpc.serializer.JsonSerializer;
 
+import java.net.InetSocketAddress;
+
 
 public class NettyServer implements RpcServer {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
 
+    private final String host;
+
+    private final int port;
+
+    private final ServiceRegistry serviceRegistry;
+
+    private final ServiceProvider serviceProvider;
+
     private CommonSerializer serializer;
+
+    public NettyServer(String host, int port){
+        this.host = host;
+        this.port = port;
+        serviceRegistry = new NacosServiceRegistry();
+        serviceProvider = new ServiceProviderImpl();
+    }
+
+    @Override
+    public <T> void publishService(T service, Class<T> serviceClass) {
+        if(serializer == null){
+            logger.error("未设置序列化器");
+            throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
+        }
+        serviceProvider.addServiceProvider(service, serviceClass);
+        serviceRegistry.register(serviceClass.getCanonicalName(), new InetSocketAddress(host, port));
+        start();
+    }
 
     /**
      * Netty服务端启动器：负责启动一个Netty服务器监听指定端口、接收客户端连接
      * 并通过pipeline的编解码器把网络字节流转成RpcRequest/RpcResponse，最走过交给handler执行业务
      * 并返回结果
-     * @param port
      */
     @Override
-    public void start(int port) {
+    public void start() {
         if(serializer == null){
             logger.error("未设置序列化器");
             throw new RpcException(RpcError.SERVICE_NOT_FOUND);
@@ -77,7 +108,7 @@ public class NettyServer implements RpcServer {
                         }
                     });
             // 绑定端口并阻塞等待绑定成功
-            ChannelFuture future = serverBootstrap.bind(port).sync();
+            ChannelFuture future = serverBootstrap.bind(host, port).sync();
 //            阻塞等待服务端channel关闭
             future.channel().closeFuture().sync();
         }catch (InterruptedException e){
