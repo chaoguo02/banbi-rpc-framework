@@ -16,8 +16,11 @@ public class NacosUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(NacosUtil.class);
 
+    /*
+    NamingService是Nacos Client用来左服务注册/发现的核心接口
+     */
     private static final NamingService namingService;
-
+    // 用于保存当前进程曾经注册过哪些服务名
     private static final Set<String> serviceNames = new HashSet<>();
 
     private static InetSocketAddress address;
@@ -41,16 +44,25 @@ public class NacosUtil {
         }
     }
 
+    /*
+        调用registerInstance将服务注册到Nacos
+     */
     public static void registerService(String serviceName, InetSocketAddress inetSocketAddress) throws NacosException{
         namingService.registerInstance(serviceName, inetSocketAddress.getHostName(), inetSocketAddress.getPort());
-        NacosUtil.address = address;
+        NacosUtil.address = inetSocketAddress;
         serviceNames.add(serviceName);
     }
 
+    /*
+        服务发现
+     */
     public static List<Instance> getAllInstance(String serviceName) throws NacosException{
         return namingService.getAllInstances(serviceName);
     }
 
+    /*
+        批量注销当前进程注册过的服务
+     */
     public static void clearRegistry(){
         if(!serviceNames.isEmpty() && address != null){
             String host = address.getHostName();

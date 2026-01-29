@@ -2,18 +2,17 @@ package com.banbi.rpc.transport.socket.client;
 
 import com.banbi.rpc.entity.RpcRequest;
 import com.banbi.rpc.entity.RpcResponse;
-import com.banbi.rpc.enumeration.ResponseCode;
 import com.banbi.rpc.enumeration.RpcError;
 import com.banbi.rpc.exception.RpcException;
+import com.banbi.rpc.loadbalancer.LoadBalancer;
+import com.banbi.rpc.loadbalancer.RandomLoadBalancer;
 import com.banbi.rpc.register.NacosServiceDiscovery;
-import com.banbi.rpc.register.NacosServiceRegistry;
 import com.banbi.rpc.register.ServiceDiscovery;
-import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.transport.RpcClient;
 import com.banbi.rpc.transport.socket.util.ObjectReader;
 import com.banbi.rpc.transport.socket.util.ObjectWriter;
-import com.banbi.rpc.util.RpcManagerChecker;
+import com.banbi.rpc.util.RpcMessageChecker;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,13 +25,27 @@ import java.net.Socket;
 public class SocketClient implements RpcClient {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
-    private CommonSerializer serializer;
+    private final CommonSerializer serializer;
 
     private final ServiceDiscovery serviceDiscovery;
 
     public SocketClient(){
-        serviceDiscovery = new NacosServiceDiscovery();
+        this(DEFAULT_SERIALIZER);
     }
+
+    public SocketClient(Integer serializerCode){
+        this(serializerCode, new RandomLoadBalancer());
+    }
+
+    public SocketClient(LoadBalancer loadBalancer){
+        this(DEFAULT_SERIALIZER, loadBalancer);
+    }
+
+    public SocketClient(Integer serializerCode, LoadBalancer loadBalancer){
+        serviceDiscovery = new NacosServiceDiscovery(loadBalancer);
+        serializer = CommonSerializer.getByCode(serializerCode);
+    }
+
 
     /**
      * 在 RPC 客户端侧发起一次远程调用
@@ -55,19 +68,16 @@ public class SocketClient implements RpcClient {
             Object obj = ObjectReader.readObject(is);
             // 阻塞等待并读取客户端响应
             RpcResponse rpcResponse = (RpcResponse) obj;
-            RpcManagerChecker.check(rpcRequest, rpcResponse);
+            RpcMessageChecker.check(rpcRequest, rpcResponse);
             // 返回真正的业务数据
-            return rpcResponse.getData();
+            return rpcResponse;
         }catch (IOException e){
             logger.error("调用时有错误发生：" + e);
             throw new RpcException("服务调用失败：", e);
         }
     }
 
-    @Override
-    public void setSerializer(CommonSerializer serializer) {
-        this.serializer = serializer;
-    }
+
 }
 
 

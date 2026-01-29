@@ -20,11 +20,13 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.banbi.rpc.serializer.JsonSerializer;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 
 public class NettyServer implements RpcServer {
@@ -39,15 +41,23 @@ public class NettyServer implements RpcServer {
 
     private final ServiceProvider serviceProvider;
 
-    private CommonSerializer serializer;
+    private final CommonSerializer serializer;
 
     public NettyServer(String host, int port){
+        this(host, port, DEFAULT_SERIALIZER);
+    }
+
+    public NettyServer(String host, int port, Integer serializerCode){
         this.host = host;
         this.port = port;
         serviceRegistry = new NacosServiceRegistry();
         serviceProvider = new ServiceProviderImpl();
+        serializer = CommonSerializer.getByCode(serializerCode);
     }
 
+    /*
+        将服务发布出去，先在本机保存服务实例，再向注册中心注册服务地址，最后启动RPC服务器开始对外提供服务
+     */
     @Override
     public <T> void publishService(T service, Class<T> serviceClass) {
         if(serializer == null){
@@ -66,11 +76,7 @@ public class NettyServer implements RpcServer {
      */
     @Override
     public void start() {
-        if(serializer == null){
-            logger.error("未设置序列化器");
-            throw new RpcException(RpcError.SERVICE_NOT_FOUND);
-        }
-
+        ShutdownHook.getShutdownHook().addClearAllHook();
         /*
             两个线程组：bossGroup和workerGroup
             bossGroup：专门负责accept新连接
@@ -103,14 +109,15 @@ public class NettyServer implements RpcServer {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
-                            pipeline.addLast(new CommonEncoder(serializer))
+                            // 设定IdleStateHandler心跳检测每30秒进行一次读检测，如果30秒内ChannelRead()方法未被调用则触发一次userEventTrigger()方法
+                            pipeline.addLast(new IdleStateHandler(30, 0, 0, TimeUnit.SECONDS))
+                                    .addLast(new CommonEncoder(serializer))
                                     .addLast(new CommonDecoder())
                                     .addLast(new NettyServerHandler());
                         }
                     });
             // 绑定端口并阻塞等待绑定成功
             ChannelFuture future = serverBootstrap.bind(host, port).sync();
-            ShutdownHook.getShutdownHook().addClearAllHook();
 //            阻塞等待服务端channel关闭
             future.channel().closeFuture().sync();
         }catch (InterruptedException e){
@@ -122,8 +129,4 @@ public class NettyServer implements RpcServer {
         }
     }
 
-    @Override
-    public void setSerializer(CommonSerializer serializer) {
-        this.serializer = serializer;
-    }
 }

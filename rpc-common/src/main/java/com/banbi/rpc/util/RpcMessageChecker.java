@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @NoArgsConstructor
-public class RpcManagerChecker {
+public class RpcMessageChecker {
 
-    private static final Logger logger = LoggerFactory.getLogger(RpcManagerChecker.class);
+    private static final Logger logger = LoggerFactory.getLogger(RpcMessageChecker.class);
 
     private static final String INTERFACE_NAME = "interfaceName";
 

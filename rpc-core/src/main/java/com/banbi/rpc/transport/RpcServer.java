@@ -5,8 +5,7 @@ import com.banbi.rpc.serializer.CommonSerializer;
 public interface RpcServer {
     void start();
 
-    void setSerializer(CommonSerializer serializer);
-
+    int DEFAULT_SERIALIZER = CommonSerializer.KRYO_SERIALIZER;
     /*
     向Nacos注册服务
      */
