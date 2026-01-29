@@ -10,6 +10,7 @@ import com.banbi.rpc.register.NacosServiceRegistry;
 import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.handler.RequestHandler;
 import com.banbi.rpc.serializer.CommonSerializer;
+import com.banbi.rpc.transport.AbstractRpcServer;
 import com.banbi.rpc.transport.RpcServer;
 import com.banbi.rpc.factory.ThreadPoolFactory;
 import org.slf4j.Logger;
@@ -24,23 +25,18 @@ import java.util.concurrent.*;
 /**
  * RPC 服务端的 Socket 监听与请求分发模块
  */
-public class SocketServer implements RpcServer {
+public class SocketServer extends AbstractRpcServer {
 
     private final ExecutorService threadPool;
 
     private static final Logger logger = LoggerFactory.getLogger(SocketServer.class);
 
-    private final String host;
 
-    private final int port;
 
     private final CommonSerializer serializer;
 
     private final RequestHandler requestHandler = new RequestHandler();
 
-    private final ServiceRegistry serviceRegistry;
-
-    private final ServiceProvider serviceProvider;
 
     public SocketServer(String host, int port){
         this(host,port,DEFAULT_SERIALIZER);
@@ -53,17 +49,7 @@ public class SocketServer implements RpcServer {
         serviceProvider = new ServiceProviderImpl();
         serializer = CommonSerializer.getByCode(serializerCode);
         threadPool = ThreadPoolFactory.createDefaultThreadPool("socket-rpc-server");
-    }
-
-    @Override
-    public <T> void publishService(T service, Class<T> serviceClass) {
-        if(serializer == null){
-            logger.error("未设置序列化器");
-            throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
-        }
-        serviceProvider.addServiceProvider(service, serviceClass);
-        serviceRegistry.register(serviceClass.getCanonicalName(), new InetSocketAddress(host, port));
-        start();
+        scanServices();
     }
 
     /**

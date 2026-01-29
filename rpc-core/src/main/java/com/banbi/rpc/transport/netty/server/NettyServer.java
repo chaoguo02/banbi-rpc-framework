@@ -12,6 +12,7 @@ import com.banbi.rpc.register.ServiceRegistry;
 import com.banbi.rpc.serializer.CommonSerializer;
 import com.banbi.rpc.serializer.HessianSerializer;
 import com.banbi.rpc.serializer.KryoSerializer;
+import com.banbi.rpc.transport.AbstractRpcServer;
 import com.banbi.rpc.transport.RpcServer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -29,17 +30,10 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 
-public class NettyServer implements RpcServer {
+public class NettyServer extends AbstractRpcServer {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
 
-    private final String host;
-
-    private final int port;
-
-    private final ServiceRegistry serviceRegistry;
-
-    private final ServiceProvider serviceProvider;
 
     private final CommonSerializer serializer;
 
@@ -53,21 +47,13 @@ public class NettyServer implements RpcServer {
         serviceRegistry = new NacosServiceRegistry();
         serviceProvider = new ServiceProviderImpl();
         serializer = CommonSerializer.getByCode(serializerCode);
+        scanServices();
     }
 
     /*
         将服务发布出去，先在本机保存服务实例，再向注册中心注册服务地址，最后启动RPC服务器开始对外提供服务
      */
-    @Override
-    public <T> void publishService(T service, Class<T> serviceClass) {
-        if(serializer == null){
-            logger.error("未设置序列化器");
-            throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
-        }
-        serviceProvider.addServiceProvider(service, serviceClass);
-        serviceRegistry.register(serviceClass.getCanonicalName(), new InetSocketAddress(host, port));
-        start();
-    }
+
 
     /**
      * Netty服务端启动器：负责启动一个Netty服务器监听指定端口、接收客户端连接

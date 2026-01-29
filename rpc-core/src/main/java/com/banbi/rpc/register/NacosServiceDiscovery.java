@@ -3,6 +3,8 @@ package com.banbi.rpc.register;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
+import com.banbi.rpc.enumeration.RpcError;
+import com.banbi.rpc.exception.RpcException;
 import com.banbi.rpc.loadbalancer.LoadBalancer;
 import com.banbi.rpc.loadbalancer.RandomLoadBalancer;
 import com.banbi.rpc.util.NacosUtil;
@@ -29,6 +31,10 @@ public class NacosServiceDiscovery implements ServiceDiscovery{
     public InetSocketAddress lookupService(String serviceName) {
         try{
             List<Instance> instances = NacosUtil.getAllInstance(serviceName);
+            if(instances.size() == 0){
+                logger.error("找不到对应服务：" + serviceName);
+                throw new RpcException(RpcError.SERVICE_NOT_FOUND);
+            }
             Instance instance = loadBalancer.select(instances);
             return new InetSocketAddress(instance.getIp(), instance.getPort());
         }catch (NacosException e){

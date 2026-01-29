@@ -14,6 +14,6 @@ public class HelloServiceImpl implements HelloService {
     @Override
     public String hello(HelloObject helloObject) {
         logger.info("接收到消息：{}", helloObject.getMessage());
-        return "本次处理来自Netty服务";
+        return "成功调用hello()方法";
     }
 }

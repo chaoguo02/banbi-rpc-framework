@@ -1,5 +1,6 @@
 package com.banbi.test;
 
+import com.banbi.rpc.api.ByeService;
 import com.banbi.rpc.api.HelloObject;
 import com.banbi.rpc.api.HelloService;
 import com.banbi.rpc.serializer.CommonSerializer;
@@ -19,5 +20,7 @@ public class NettyTestClient {
         HelloObject object = new HelloObject(15,"this is for u");
         String res = helloService.hello(object);
         System.out.println(res);
+        ByeService byeService = rpcClientProxy.getProxy(ByeService.class);
+        System.out.println(byeService.bye("Netty"));
     }
 }
